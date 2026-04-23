@@ -112,3 +112,51 @@ func TestAnalyze_Timeout(t *testing.T) {
 		t.Fatal("expected timeout error, got nil")
 	}
 }
+
+func TestAnalyze_BrokenLinks(t *testing.T) {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`
+			<html><body>
+				<a href="/ok">working link</a>
+				<a href="/broken">broken link</a>
+				<a href="mailto:foo@bar.com">email</a>
+				<a href="#anchor">fragment</a>
+				<a href="">empty</a>
+			</body></html>
+		`))
+	})
+	mux.HandleFunc("/ok", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("/broken", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	})
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	result, err := Analyze(context.Background(), testOptions(server.Client(), server.URL))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var report Report
+	if err := json.Unmarshal(result, &report); err != nil {
+		t.Fatalf("invalid json: %v", err)
+	}
+
+	broken := report.Pages[0].BrokenLinks
+	if len(broken) != 1 {
+		t.Fatalf("expected 1 broken link, got %d: %+v", len(broken), broken)
+	}
+	if broken[0].StatusCode != http.StatusNotFound {
+		t.Errorf("expected status 404, got %d", broken[0].StatusCode)
+	}
+	if broken[0].URL != server.URL+"/broken" {
+		t.Errorf("expected URL %s/broken, got %s", server.URL, broken[0].URL)
+	}
+}

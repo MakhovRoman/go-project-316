@@ -1,6 +1,7 @@
 package code
 
 import (
+	"code/parser"
 	"context"
 	"encoding/json"
 	"log"
@@ -21,11 +22,13 @@ type Options struct {
 }
 
 type ReportPages struct {
-	URL        string `json:"url"`
-	Depth      uint   `json:"depth"`
-	HttpStatus int    `json:"http_status"`
-	Status     string `json:"status"`
-	Error      string `json:"error"`
+	URL          string              `json:"url"`
+	Depth        uint                `json:"depth"`
+	HttpStatus   int                 `json:"http_status"`
+	Status       string              `json:"status,omitempty"`
+	Error        string              `json:"error,omitempty"`
+	BrokenLinks  []parser.BrokenLink `json:"broken_links,omitempty"`
+	DiscoveredAt time.Time           `json:"discovered_at"`
 }
 
 type Report struct {
@@ -54,12 +57,17 @@ func Analyze(ctx context.Context, opts Options) ([]byte, error) {
 		statusErr = http.StatusText(resp.StatusCode)
 	}
 
+	brokenLinks, err := parser.ParseHTML(resp.Body, opts.HTTPClient, opts.URL)
+	if err != nil {
+		return nil, err
+	}
+
 	report := Report{
 		RootURL:     opts.URL,
 		Depth:       opts.Depth,
 		GeneratedAt: time.Now(),
 		Pages: []ReportPages{
-			{URL: resp.Request.URL.String(), Depth: opts.Depth, HttpStatus: resp.StatusCode, Status: status, Error: statusErr},
+			{URL: resp.Request.URL.String(), Depth: opts.Depth, HttpStatus: resp.StatusCode, Status: status, Error: statusErr, DiscoveredAt: time.Now(), BrokenLinks: brokenLinks},
 		},
 	}
 

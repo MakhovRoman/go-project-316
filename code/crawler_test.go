@@ -33,8 +33,8 @@ func TestAnalyze_Success(t *testing.T) {
 		t.Fatalf("invalid json: %v", err)
 	}
 
-	if report.Pages[0].HttpStatus != http.StatusOK {
-		t.Errorf("expected status 200, got %d", report.Pages[0].HttpStatus)
+	if report.Pages[0].HTTPStatus != http.StatusOK {
+		t.Errorf("expected status 200, got %d", report.Pages[0].HTTPStatus)
 	}
 	if report.Pages[0].Status != "ok" {
 		t.Errorf("expected status ok, got %s", report.Pages[0].Status)
@@ -57,8 +57,8 @@ func TestAnalyze_NotFound(t *testing.T) {
 		t.Fatalf("invalid json: %v", err)
 	}
 
-	if report.Pages[0].HttpStatus != http.StatusNotFound {
-		t.Errorf("expected status 404, got %d", report.Pages[0].HttpStatus)
+	if report.Pages[0].HTTPStatus != http.StatusNotFound {
+		t.Errorf("expected status 404, got %d", report.Pages[0].HTTPStatus)
 	}
 	if report.Pages[0].Status != "error" {
 		t.Errorf("expected status error, got %s", report.Pages[0].Status)
@@ -81,8 +81,8 @@ func TestAnalyze_ServerError(t *testing.T) {
 		t.Fatalf("invalid json: %v", err)
 	}
 
-	if report.Pages[0].HttpStatus != http.StatusInternalServerError {
-		t.Errorf("expected status 500, got %d", report.Pages[0].HttpStatus)
+	if report.Pages[0].HTTPStatus != http.StatusInternalServerError {
+		t.Errorf("expected status 500, got %d", report.Pages[0].HTTPStatus)
 	}
 	if report.Pages[0].Status != "error" {
 		t.Errorf("expected status error, got %s", report.Pages[0].Status)

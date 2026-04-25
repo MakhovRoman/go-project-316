@@ -62,7 +62,7 @@ func makeDelay(delay time.Duration, rps uint) time.Duration {
 		return delay
 	}
 
-	return time.Second / time.Duration(rps)
+	return time.Second / time.Duration(int64(rps))
 }
 
 func SleepContext(ctx context.Context, delay time.Duration) error {

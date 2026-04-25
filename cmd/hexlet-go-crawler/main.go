@@ -54,6 +54,7 @@ func main() {
 				URL:         url,
 				Depth:       depth,
 				Retries:     retries,
+				RPS:         rps,
 				Delay:       delay,
 				Timeout:     timeout,
 				UserAgent:   userAgent,

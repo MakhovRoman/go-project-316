@@ -25,6 +25,16 @@ func testOptionsWithDepth(client *http.Client, url string, depth uint) Options {
 	}
 }
 
+func opts(client *http.Client, url string, depth uint, delay time.Duration, rps uint) Options {
+	return Options{
+		URL:        url,
+		Depth:      depth,
+		Delay:      delay,
+		RPS:        rps,
+		HTTPClient: client,
+	}
+}
+
 func TestAnalyze_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -288,5 +298,130 @@ func TestAnalyze_DuplicateLinksDeduped(t *testing.T) {
 
 	if len(report.Pages) != 2 {
 		t.Errorf("expected 2 pages (root + /page1), got %d", len(report.Pages))
+	}
+}
+
+func TestAnalyze_DelayLimitsPageCount(t *testing.T) {
+	// Каждая страница ведёт к следующей — достаточно страниц чтобы не уместиться в период
+	paths := []string{"/p1", "/p2", "/p3", "/p4", "/p5", "/p6"}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		body := "<html><body>"
+		for _, p := range paths {
+			body += `<a href="` + p + `">link</a>`
+		}
+		_, _ = w.Write([]byte(body + "</body></html>"))
+	})
+	for _, p := range paths {
+		mux.HandleFunc(p, func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
+	}
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	const delay = 100 * time.Millisecond
+	const period = 350 * time.Millisecond
+	// delay применяется перед каждой страницей: t=100ms→root, t=200ms→/p1, t=300ms→/p2, t=400ms — не успевает
+	maxExpected := int(period/delay)
+
+	ctx, cancel := context.WithTimeout(context.Background(), period)
+	defer cancel()
+
+	result, _ := Analyze(ctx, opts(server.Client(), server.URL, 2, delay, 0))
+
+	var report Report
+	if err := json.Unmarshal(result, &report); err != nil {
+		t.Fatalf("invalid json: %v", err)
+	}
+	if len(report.Pages) > maxExpected {
+		t.Errorf("delay=%v, period=%v: expected at most %d pages, got %d", delay, period, maxExpected, len(report.Pages))
+	}
+}
+
+func TestAnalyze_RPSLimitsPageCount(t *testing.T) {
+	paths := []string{"/p1", "/p2", "/p3", "/p4", "/p5", "/p6"}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		body := "<html><body>"
+		for _, p := range paths {
+			body += `<a href="` + p + `">link</a>`
+		}
+		_, _ = w.Write([]byte(body + "</body></html>"))
+	})
+	for _, p := range paths {
+		mux.HandleFunc(p, func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
+	}
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	const rps = 5 // delay = 200ms между страницами
+	const period = 550 * time.Millisecond
+	// t=200ms→root, t=400ms→/p1, t=600ms — не успевает
+	maxExpected := int(period / (time.Second / rps))
+
+	ctx, cancel := context.WithTimeout(context.Background(), period)
+	defer cancel()
+
+	result, _ := Analyze(ctx, opts(server.Client(), server.URL, 2, 0, rps))
+
+	var report Report
+	if err := json.Unmarshal(result, &report); err != nil {
+		t.Fatalf("invalid json: %v", err)
+	}
+	if len(report.Pages) > maxExpected {
+		t.Errorf("rps=%d, period=%v: expected at most %d pages, got %d", rps, period, maxExpected, len(report.Pages))
+	}
+}
+
+func TestAnalyze_NoDelayNoArtificialSlowdown(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	opts := testOptions(server.Client(), server.URL)
+	start := time.Now()
+	_, err := Analyze(context.Background(), opts)
+	elapsed := time.Since(start)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if elapsed > 500*time.Millisecond {
+		t.Errorf("no delay set but took %v — possible artificial slowdown", elapsed)
+	}
+}
+
+func TestAnalyze_ContextCancelStopsDelay(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = w.Write([]byte(`<html><body><a href="/p1">p1</a></body></html>`))
+	})
+	mux.HandleFunc("/p1", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	opts := Options{
+		URL:        server.URL,
+		Depth:      2,
+		Delay:      10 * time.Second,
+		HTTPClient: server.Client(),
+	}
+
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		cancel()
+	}()
+
+	start := time.Now()
+	_, _ = Analyze(ctx, opts)
+	elapsed := time.Since(start)
+
+	if elapsed > 2*time.Second {
+		t.Errorf("context cancel did not stop delay in time, elapsed: %v", elapsed)
 	}
 }

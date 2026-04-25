@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"time"
 )
 
 type CrawlParams struct {
@@ -15,6 +16,7 @@ type CrawlParams struct {
 	Body       io.Reader
 	Queue      *Queue
 	Visited    Visited
+	Delay      time.Duration
 }
 
 type QueueItem struct {

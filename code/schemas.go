@@ -11,6 +11,7 @@ type Options struct {
 	URL         string
 	Depth       uint
 	Retries     uint
+	RPS         uint
 	Delay       time.Duration
 	Timeout     time.Duration
 	UserAgent   string

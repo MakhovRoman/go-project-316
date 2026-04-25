@@ -112,7 +112,7 @@ func request(ctx context.Context, client *http.Client, path string) (*http.Respo
 		return nil, nil, err
 	}
 
-	resp, err := client.Do(req)
+	resp, err := client.Do(req) // #nosec G704 -- URL validated and reconstructed via helpers.ValidateURL
 	if err != nil {
 		return nil, nil, err
 	}

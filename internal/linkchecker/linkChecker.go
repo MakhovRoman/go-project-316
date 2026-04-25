@@ -29,7 +29,7 @@ func CheckLinks(params shared.CrawlParams, path string, depth uint) ([]BrokenLin
 			brokenLinks = append(brokenLinks, BrokenLink{URL: link.URL, Error: e.Error()})
 			continue
 		}
-		r, e := params.HTTPClient.Do(req)
+		r, e := params.HTTPClient.Do(req) // #nosec G704 -- URL validated and reconstructed via helpers.ValidateURL
 		if e != nil {
 			brokenLinks = append(brokenLinks, BrokenLink{URL: link.URL, Error: e.Error()})
 			continue

@@ -45,8 +45,8 @@ func TestParseHTML_ResolvesRelativeLinks(t *testing.T) {
 		"https://example.com/blog/page.html": true,
 	}
 	for _, l := range links {
-		if !expected[l] {
-			t.Errorf("unexpected link: %s", l)
+		if !expected[l.URL] {
+			t.Errorf("unexpected link: %s", l.URL)
 		}
 	}
 }

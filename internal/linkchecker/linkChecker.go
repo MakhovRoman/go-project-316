@@ -2,19 +2,15 @@ package linkchecker
 
 import (
 	"code/internal/parser"
-	"io"
+	"code/internal/shared"
 	"log"
 	"net/http"
+	"net/url"
 )
 
-type BrokenLink struct {
-	URL        string `json:"url"`
-	StatusCode int    `json:"status_code,omitempty"`
-	Error      string `json:"error,omitempty"`
-}
+func CheckLinks(params shared.CrawlParams, path string, depth uint) ([]BrokenLink, error) {
+	links, err := parser.ParseHTML(params.Body, path)
 
-func CheckLinks(body io.Reader, client *http.Client, path string) ([]BrokenLink, error) {
-	links, err := parser.ParseHTML(body, path)
 	if err != nil {
 		return nil, err
 	}
@@ -22,14 +18,23 @@ func CheckLinks(body io.Reader, client *http.Client, path string) ([]BrokenLink,
 	var brokenLinks []BrokenLink
 
 	for _, link := range links {
-		r, e := client.Get(link)
+		req, e := http.NewRequestWithContext(params.CTX, http.MethodGet, link.URL, nil)
 		if e != nil {
-			brokenLinks = append(brokenLinks, BrokenLink{URL: link, Error: e.Error()})
+			brokenLinks = append(brokenLinks, BrokenLink{URL: link.URL, Error: e.Error()})
+			continue
+		}
+		r, e := params.HTTPClient.Do(req)
+		if e != nil {
+			brokenLinks = append(brokenLinks, BrokenLink{URL: link.URL, Error: e.Error()})
 			continue
 		}
 
 		if r.StatusCode != http.StatusOK {
-			brokenLinks = append(brokenLinks, BrokenLink{URL: link, StatusCode: r.StatusCode})
+			brokenLinks = append(brokenLinks, BrokenLink{URL: link.URL, StatusCode: r.StatusCode})
+		} else {
+			if err := addToQueue(link.URL, params.Host, depth, params.Queue, params.Visited); err != nil {
+				return nil, err
+			}
 		}
 
 		if err := r.Body.Close(); err != nil {
@@ -38,4 +43,21 @@ func CheckLinks(body io.Reader, client *http.Client, path string) ([]BrokenLink,
 	}
 
 	return brokenLinks, nil
+}
+
+func addToQueue(path, host string, depth uint, queue *shared.Queue, visited shared.Visited) error {
+	u, err := url.Parse(path)
+	if err != nil {
+		return nil
+	}
+
+	if _, ok := visited[path]; !ok && u.Host == host {
+		*queue = append(*queue, shared.QueueItem{
+			URL:   path,
+			Depth: depth + 1,
+		})
+		visited[path] = struct{}{}
+	}
+
+	return nil
 }

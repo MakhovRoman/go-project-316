@@ -7,7 +7,12 @@ import (
 	"golang.org/x/net/html"
 )
 
-func ParseHTML(body io.Reader, path string) ([]string, error) {
+type Link struct {
+	URL      string
+	Internal bool
+}
+
+func ParseHTML(body io.Reader, path string) ([]Link, error) {
 	doc, err := html.Parse(body)
 	if err != nil {
 		return nil, err
@@ -18,7 +23,7 @@ func ParseHTML(body io.Reader, path string) ([]string, error) {
 		return nil, err
 	}
 
-	var links []string
+	var links []Link
 
 	for n := range doc.Descendants() {
 		if n.Type != html.ElementNode || n.Data != "a" {
@@ -44,8 +49,10 @@ func ParseHTML(body io.Reader, path string) ([]string, error) {
 				continue
 			}
 
-			dataURL := resolved.String()
-			links = append(links, dataURL)
+			var link Link
+
+			link.URL = resolved.String()
+			links = append(links, link)
 		}
 	}
 

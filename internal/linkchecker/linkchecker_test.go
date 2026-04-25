@@ -1,11 +1,25 @@
 package linkchecker
 
 import (
+	"code/internal/shared"
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 )
+
+func makeParams(client *http.Client, host string, body string) shared.CrawlParams {
+	var queue shared.Queue
+	return shared.CrawlParams{
+		CTX:        context.Background(),
+		HTTPClient: client,
+		Host:       host,
+		Body:       strings.NewReader(body),
+		Queue:      &queue,
+		Visited:    make(shared.Visited),
+	}
+}
 
 func TestCheckLinks_CollectsBrokenLinks(t *testing.T) {
 	mux := http.NewServeMux()
@@ -21,15 +35,16 @@ func TestCheckLinks_CollectsBrokenLinks(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	body := strings.NewReader(`
+	html := `
 		<html><body>
 			<a href="/ok">ok</a>
 			<a href="/not-found">broken</a>
 			<a href="/server-error">server error</a>
 		</body></html>
-	`)
+	`
+	params := makeParams(server.Client(), server.Listener.Addr().String(), html)
 
-	broken, err := CheckLinks(body, server.Client(), server.URL)
+	broken, err := CheckLinks(params, server.URL, 0)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -48,13 +63,14 @@ func TestCheckLinks_CollectsBrokenLinks(t *testing.T) {
 }
 
 func TestCheckLinks_NetworkError(t *testing.T) {
-	body := strings.NewReader(`
+	html := `
 		<html><body>
 			<a href="http://nonexistent.invalid.localhost">bad</a>
 		</body></html>
-	`)
+	`
+	params := makeParams(&http.Client{}, "example.com", html)
 
-	broken, err := CheckLinks(body, &http.Client{}, "http://example.com")
+	broken, err := CheckLinks(params, "http://example.com", 0)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -71,9 +87,9 @@ func TestCheckLinks_NetworkError(t *testing.T) {
 }
 
 func TestCheckLinks_NoLinks(t *testing.T) {
-	body := strings.NewReader(`<html><body><p>no links</p></body></html>`)
+	params := makeParams(&http.Client{}, "example.com", `<html><body><p>no links</p></body></html>`)
 
-	broken, err := CheckLinks(body, &http.Client{}, "http://example.com")
+	broken, err := CheckLinks(params, "http://example.com", 0)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -84,14 +100,15 @@ func TestCheckLinks_NoLinks(t *testing.T) {
 }
 
 func TestCheckLinks_IgnoresUnsupportedSchemes(t *testing.T) {
-	body := strings.NewReader(`
+	html := `
 		<html><body>
 			<a href="mailto:foo@bar.com">email</a>
 			<a href="#anchor">fragment</a>
 		</body></html>
-	`)
+	`
+	params := makeParams(&http.Client{}, "example.com", html)
 
-	broken, err := CheckLinks(body, &http.Client{}, "http://example.com")
+	broken, err := CheckLinks(params, "http://example.com", 0)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

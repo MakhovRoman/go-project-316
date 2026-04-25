@@ -3,54 +3,129 @@ package code
 import (
 	"bytes"
 	"code/internal/linkchecker"
-	parser2 "code/internal/parser"
+	"code/internal/parser"
+	"code/internal/shared"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"time"
+
+	"golang.org/x/net/html/charset"
 )
 
-type Options struct {
-	URL         string
-	Depth       uint
-	Retries     uint
-	Delay       time.Duration
-	Timeout     time.Duration
-	UserAgent   string
-	Concurrency uint
-	IndentJSON  uint
-	HTTPClient  *http.Client
-}
+const LimitReader = 10 * 1024 * 1024
 
-type Pages struct {
-	URL          string                   `json:"url"`
-	Depth        uint                     `json:"depth"`
-	HTTPStatus   int                      `json:"http_status"`
-	Status       string                   `json:"status,omitempty"`
-	Error        string                   `json:"error,omitempty"`
-	BrokenLinks  []linkchecker.BrokenLink `json:"broken_links,omitempty"`
-	DiscoveredAt time.Time                `json:"discovered_at"`
-	SEO          parser2.SEO              `json:"seo"`
-}
-
-type Report struct {
-	RootURL     string    `json:"root_url"`
-	Depth       uint      `json:"depth"`
-	GeneratedAt time.Time `json:"generated_at"`
-	Pages       []Pages   `json:"pages"`
-}
+const BaseDepth = 0
 
 func Analyze(ctx context.Context, opts Options) ([]byte, error) {
-	resp, err := opts.HTTPClient.Get(opts.URL)
+	var queue shared.Queue
+	visited := make(shared.Visited)
+
+	host, err := getHost(opts.URL)
 	if err != nil {
 		return nil, err
 	}
 
-	bodyBuffer, err := io.ReadAll(io.LimitReader(resp.Body, 10*1024*1024))
+	crawlParams := shared.CrawlParams{
+		CTX:        ctx,
+		HTTPClient: opts.HTTPClient,
+		Host:       host,
+		URL:        opts.URL,
+		Queue:      &queue,
+		Visited:    visited,
+	}
+
+	var pages []Page
+
+	basePage, err := makePageReport(crawlParams, crawlParams.URL, BaseDepth)
 	if err != nil {
 		return nil, err
+	}
+	visited[opts.URL] = struct{}{}
+	pages = append(pages, basePage)
+
+	for i := BaseDepth; i < len(queue); i++ {
+
+		if queue[i].Depth >= opts.Depth {
+			break
+		}
+		page, err := makePageReport(crawlParams, queue[i].URL, queue[i].Depth)
+		if err != nil {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				break
+			}
+			return nil, err
+		}
+
+		pages = append(pages, page)
+	}
+
+	report := Report{
+		RootURL:     opts.URL,
+		Depth:       opts.Depth,
+		GeneratedAt: time.Now(),
+		Pages:       pages,
+	}
+
+	result, err := json.Marshal(report)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func getHost(path string) (string, error) {
+	u, err := url.Parse(path)
+	if err != nil {
+		return "", err
+	}
+
+	return u.Host, nil
+}
+
+func makeReader(buff []byte, resp *http.Response) (io.Reader, error) {
+	if len(buff) == 0 {
+		return bytes.NewReader(buff), nil
+	}
+
+	reader, err := charset.NewReader(bytes.NewReader(buff), resp.Header.Get("Content-Type"))
+	if err != nil {
+		return bytes.NewReader(buff), nil
+	}
+
+	return reader, nil
+}
+
+func request(ctx context.Context, client *http.Client, path string) (*http.Response, []byte, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", path, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	bodyBuffer, err := io.ReadAll(io.LimitReader(resp.Body, LimitReader))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return resp, bodyBuffer, nil
+}
+
+func makePageReport(params shared.CrawlParams, path string, depth uint) (Page, error) {
+	var page Page
+
+	resp, bodyBuffer, err := request(params.CTX, params.HTTPClient, path)
+	if err != nil {
+		return page, err
 	}
 
 	defer func() {
@@ -67,38 +142,36 @@ func Analyze(ctx context.Context, opts Options) ([]byte, error) {
 		statusErr = http.StatusText(resp.StatusCode)
 	}
 
-	brokenLinks, err := linkchecker.CheckLinks(bytes.NewReader(bodyBuffer), opts.HTTPClient, opts.URL)
+	bodyReader, err := makeReader(bodyBuffer, resp)
 	if err != nil {
-		return nil, err
+		return page, err
 	}
+	params.Body = bodyReader
 
-	seo, err := parser2.ParseSEO(bytes.NewReader(bodyBuffer))
+	brokenLinks, err := linkchecker.CheckLinks(params, path, depth)
 	if err != nil {
-		return nil, err
+		return page, err
 	}
 
-	report := Report{
-		RootURL:     opts.URL,
-		Depth:       opts.Depth,
-		GeneratedAt: time.Now(),
-		Pages: []Pages{
-			{
-				URL:          resp.Request.URL.String(),
-				Depth:        opts.Depth,
-				HTTPStatus:   resp.StatusCode,
-				Status:       status,
-				Error:        statusErr,
-				DiscoveredAt: time.Now(),
-				BrokenLinks:  brokenLinks,
-				SEO:          seo,
-			},
-		},
-	}
-
-	result, err := json.Marshal(report)
+	seoReader, err := makeReader(bodyBuffer, resp)
 	if err != nil {
-		return nil, err
+		return page, err
+	}
+	seo, err := parser.ParseSEO(seoReader)
+	if err != nil {
+		return page, err
 	}
 
-	return result, nil
+	page = Page{
+		URL:          resp.Request.URL.String(),
+		Depth:        depth,
+		HTTPStatus:   resp.StatusCode,
+		Status:       status,
+		Error:        statusErr,
+		DiscoveredAt: time.Now(),
+		BrokenLinks:  brokenLinks,
+		SEO:          seo,
+	}
+
+	return page, nil
 }

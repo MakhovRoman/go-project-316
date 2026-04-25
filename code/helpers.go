@@ -62,7 +62,7 @@ func makeDelay(delay time.Duration, rps uint) time.Duration {
 		return delay
 	}
 
-	return time.Second / time.Duration(int64(rps))
+	return time.Second / time.Duration(int64(rps)) // #nosec G115 -- rps is a small positive value, overflow is impossible in practice
 }
 
 func SleepContext(ctx context.Context, delay time.Duration) error {

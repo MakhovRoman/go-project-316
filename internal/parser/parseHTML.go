@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"code/internal/helpers"
 	"io"
 	"net/url"
 
@@ -45,7 +46,7 @@ func ParseHTML(body io.Reader, path string) ([]Link, error) {
 			}
 
 			resolved := base.ResolveReference(ref)
-			if resolved.Scheme != "http" && resolved.Scheme != "https" {
+			if err := helpers.ValidateURL(resolved.String()); err != nil {
 				continue
 			}
 

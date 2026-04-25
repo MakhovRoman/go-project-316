@@ -1,6 +1,7 @@
 package linkchecker
 
 import (
+	"code/internal/helpers"
 	"code/internal/parser"
 	"code/internal/shared"
 	"log"
@@ -18,6 +19,10 @@ func CheckLinks(params shared.CrawlParams, path string, depth uint) ([]BrokenLin
 	var brokenLinks []BrokenLink
 
 	for _, link := range links {
+		if e := helpers.ValidateURL(link.URL); e != nil {
+			brokenLinks = append(brokenLinks, BrokenLink{URL: link.URL, Error: e.Error()})
+			continue
+		}
 		req, e := http.NewRequestWithContext(params.CTX, http.MethodGet, link.URL, nil)
 		if e != nil {
 			brokenLinks = append(brokenLinks, BrokenLink{URL: link.URL, Error: e.Error()})

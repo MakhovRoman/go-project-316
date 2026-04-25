@@ -103,10 +103,11 @@ func makeReader(buff []byte, resp *http.Response) (io.Reader, error) {
 }
 
 func request(ctx context.Context, client *http.Client, path string) (*http.Response, []byte, error) {
-	if err := helpers.ValidateURL(path); err != nil {
+	safeURL, err := helpers.ValidateURL(path)
+	if err != nil {
 		return nil, nil, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, path, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, safeURL, nil)
 	if err != nil {
 		return nil, nil, err
 	}

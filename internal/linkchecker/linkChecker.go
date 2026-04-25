@@ -19,11 +19,12 @@ func CheckLinks(params shared.CrawlParams, path string, depth uint) ([]BrokenLin
 	var brokenLinks []BrokenLink
 
 	for _, link := range links {
-		if e := helpers.ValidateURL(link.URL); e != nil {
+		safeURL, e := helpers.ValidateURL(link.URL)
+		if e != nil {
 			brokenLinks = append(brokenLinks, BrokenLink{URL: link.URL, Error: e.Error()})
 			continue
 		}
-		req, e := http.NewRequestWithContext(params.CTX, http.MethodGet, link.URL, nil)
+		req, e := http.NewRequestWithContext(params.CTX, http.MethodGet, safeURL, nil)
 		if e != nil {
 			brokenLinks = append(brokenLinks, BrokenLink{URL: link.URL, Error: e.Error()})
 			continue

@@ -46,13 +46,14 @@ func ParseHTML(body io.Reader, path string) ([]Link, error) {
 			}
 
 			resolved := base.ResolveReference(ref)
-			if err := helpers.ValidateURL(resolved.String()); err != nil {
+			safeURL, err := helpers.ValidateURL(resolved.String())
+			if err != nil {
 				continue
 			}
 
 			var link Link
 
-			link.URL = resolved.String()
+			link.URL = safeURL
 			links = append(links, link)
 		}
 	}

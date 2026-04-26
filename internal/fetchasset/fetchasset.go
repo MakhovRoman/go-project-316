@@ -52,7 +52,6 @@ func FetchAsset(params shared.CrawlParams, asset shared.Asset) shared.Asset {
 
 	if resp.ContentLength >= 0 {
 		asset.SizeBytes = resp.ContentLength
-		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, request.LimitReader))
 	} else {
 		n, err := io.Copy(io.Discard, io.LimitReader(resp.Body, request.LimitReader))
 		if err != nil {

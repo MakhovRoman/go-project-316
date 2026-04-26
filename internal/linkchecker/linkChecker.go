@@ -26,20 +26,11 @@ linksFor:
 			brokenLinks = append(brokenLinks, BrokenLink{URL: link.URL, Error: e.Error()})
 			continue
 		}
-		//req, e := http.NewRequestWithContext(params.CTX, http.MethodGet, safeURL, nil)
-		//if e != nil {
-		//	brokenLinks = append(brokenLinks, BrokenLink{URL: link.URL, Error: e.Error()})
-		//	continue
-		//}
-		//r, e := params.HTTPClient.Do(req) // #nosec G704 -- URL validated and reconstructed via helpers.ValidateURL
-		//if e != nil {
-		//	brokenLinks = append(brokenLinks, BrokenLink{URL: link.URL, Error: e.Error()})
-		//	continue
-		//}
 
 		var r *http.Response
 
-		for i := 0; i <= int(params.Retries); i++ {
+		retries := int(params.Retries) // #nosec G115 -- retries from CLI flag, fits in int
+		for i := 0; i <= retries; i++ {
 			if err := shared.RetryDelay(params, i); err != nil {
 				return nil, err
 			}

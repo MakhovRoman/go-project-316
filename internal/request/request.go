@@ -16,10 +16,6 @@ type ResultRequest struct {
 	Err      error
 }
 
-func (r *ResultRequest) setError(err error) {
-	r.Err = err
-}
-
 func Request(params shared.CrawlParams, path string) ResultRequest {
 	safeURL, err := helpers.ValidateURL(path)
 	if err != nil {
@@ -28,32 +24,11 @@ func Request(params shared.CrawlParams, path string) ResultRequest {
 
 	var resp *http.Response
 
-	for i := 0; i <= int(params.Retries); i++ {
+	retries := int(params.Retries) // #nosec G115 -- retries from CLI flag, fits in int
+	for i := 0; i <= retries; i++ {
 		if err := shared.RetryDelay(params, i); err != nil {
 			return ResultRequest{Err: err}
 		}
-
-		//req, err := http.NewRequestWithContext(params.CTX, http.MethodGet, safeURL, nil)
-		//if err != nil {
-		//	return ResultRequest{Err: err}
-		//}
-		//
-		//resp, err = params.HTTPClient.Do(req) // #nosec G704 -- URL validated and reconstructed via helpers.ValidateURL
-		//if err != nil {
-		//	if i == int(params.Retries) {
-		//		return ResultRequest{Err: err}
-		//	}
-		//
-		//	continue
-		//} else if resp != nil && (resp.StatusCode == 429 || resp.StatusCode >= 500) {
-		//	if i == int(params.Retries) {
-		//		break
-		//	}
-		//
-		//	continue
-		//}
-		//
-		//break
 
 		retry, err := DoRequestWithRetry(params, &resp, i, safeURL)
 		if err != nil {
@@ -84,15 +59,17 @@ func DoRequestWithRetry(params shared.CrawlParams, resp **http.Response, attempt
 		return false, err
 	}
 
+	retries := int(params.Retries) // #nosec G115 -- retries from CLI flag, fits in int
+
 	*resp, err = (params.HTTPClient).Do(req) // #nosec G704 -- URL validated and reconstructed via helpers.ValidateURL
 	if err != nil {
-		if attempt == int(params.Retries) {
+		if attempt == retries {
 			return false, err
 		}
 
 		return true, nil
 	} else if *resp != nil && ((*resp).StatusCode == 429 || (*resp).StatusCode >= 500) {
-		if attempt == int(params.Retries) {
+		if attempt == retries {
 			return false, nil
 		}
 

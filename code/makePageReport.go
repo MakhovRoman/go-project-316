@@ -1,6 +1,7 @@
 package code
 
 import (
+	"code/internal/fetchasset"
 	"code/internal/linkchecker"
 	"code/internal/parser"
 	"code/internal/request"
@@ -60,6 +61,20 @@ func makePageReport(params shared.CrawlParams, path string, depth uint) (Page, e
 		return page, err
 	}
 
+	assetsReader, err := makeReader(res.Body, res.Response)
+	if err != nil {
+		return page, err
+	}
+	parsedAssets, err := parser.ParseAssets(assetsReader, path)
+	if err != nil {
+		return page, err
+	}
+
+	assets := make([]shared.Asset, 0, len(parsedAssets))
+	for _, a := range parsedAssets {
+		assets = append(assets, fetchasset.FetchAsset(params, a))
+	}
+
 	page = Page{
 		URL:          res.Response.Request.URL.String(),
 		Depth:        depth,
@@ -69,6 +84,7 @@ func makePageReport(params shared.CrawlParams, path string, depth uint) (Page, e
 		DiscoveredAt: time.Now(),
 		BrokenLinks:  brokenLinks,
 		SEO:          seo,
+		Assets:       assets,
 	}
 
 	return page, nil

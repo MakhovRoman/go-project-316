@@ -3,6 +3,7 @@ package code
 import (
 	"code/internal/linkchecker"
 	"code/internal/parser"
+	"code/internal/shared"
 	"net/http"
 	"time"
 )
@@ -29,6 +30,7 @@ type Page struct {
 	BrokenLinks  []linkchecker.BrokenLink `json:"broken_links,omitempty"`
 	DiscoveredAt time.Time                `json:"discovered_at"`
 	SEO          parser.SEO               `json:"seo"`
+	Assets       []shared.Asset           `json:"assets"`
 }
 
 type Report struct {

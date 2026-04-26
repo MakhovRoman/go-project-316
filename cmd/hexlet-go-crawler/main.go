@@ -25,7 +25,7 @@ func main() {
 		Name:  "hexlet-go-crawler",
 		Usage: "analyze a website structure",
 		Flags: []cli.Flag{
-			&cli.UintFlag{Name: "depth", Usage: "crawl depth", Value: 10, Destination: &depth},
+			&cli.UintFlag{Name: "depth", Usage: "crawl depth", Value: 1, Destination: &depth},
 			&cli.UintFlag{Name: "retries", Usage: "number of retries for failed requests", Value: 1, Destination: &retries},
 			&cli.DurationFlag{Name: "delay", Usage: "delay between requests (example: 200ms, 1s)", Value: 0 * time.Second, Destination: &delay},
 			&cli.DurationFlag{Name: "timeout", Usage: "per-request timeout", Value: 15 * time.Second, Destination: &timeout},

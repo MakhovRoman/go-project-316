@@ -19,6 +19,7 @@ type CrawlParams struct {
 	Delay      time.Duration
 	Retries    uint
 	RPS        uint
+	AssetCache AssetCache
 }
 
 type QueueItem struct {
@@ -29,3 +30,12 @@ type QueueItem struct {
 type Queue []QueueItem
 
 type Visited map[string]struct{}
+type AssetType string
+type Asset struct {
+	URL        string    `json:"url"`
+	Type       AssetType `json:"type"`
+	StatusCode int       `json:"status_code"`
+	SizeBytes  int64     `json:"size_bytes"`
+	Error      string    `json:"error"`
+}
+type AssetCache map[string]Asset

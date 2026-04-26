@@ -19,7 +19,7 @@ func ParseHTML(body io.Reader, path string) ([]Link, error) {
 		return nil, err
 	}
 
-	base, err := url.Parse(path)
+	baseURL, err := url.Parse(path)
 	if err != nil {
 		return nil, err
 	}
@@ -31,12 +31,12 @@ func ParseHTML(body io.Reader, path string) ([]Link, error) {
 			continue
 		}
 
-		for _, a := range n.Attr {
-			if a.Key != "href" || a.Val == "" {
+		for _, attr := range n.Attr {
+			if attr.Key != "href" || attr.Val == "" {
 				continue
 			}
 
-			ref, err := url.Parse(a.Val)
+			ref, err := url.Parse(attr.Val)
 			if err != nil {
 				continue
 			}
@@ -45,7 +45,7 @@ func ParseHTML(body io.Reader, path string) ([]Link, error) {
 				continue
 			}
 
-			resolved := base.ResolveReference(ref)
+			resolved := baseURL.ResolveReference(ref)
 			safeURL, err := helpers.ValidateURL(resolved.String())
 			if err != nil {
 				continue

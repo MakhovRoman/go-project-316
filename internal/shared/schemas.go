@@ -17,6 +17,8 @@ type CrawlParams struct {
 	Queue      *Queue
 	Visited    Visited
 	Delay      time.Duration
+	Retries    uint
+	RPS        uint
 }
 
 type QueueItem struct {

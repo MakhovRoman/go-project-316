@@ -3,6 +3,7 @@ package linkchecker
 import (
 	"code/internal/helpers"
 	"code/internal/parser"
+	"code/internal/request"
 	"code/internal/shared"
 	"log"
 	"net/http"
@@ -18,21 +19,45 @@ func CheckLinks(params shared.CrawlParams, path string, depth uint) ([]BrokenLin
 
 	var brokenLinks []BrokenLink
 
+linksFor:
 	for _, link := range links {
 		safeURL, e := helpers.ValidateURL(link.URL)
 		if e != nil {
 			brokenLinks = append(brokenLinks, BrokenLink{URL: link.URL, Error: e.Error()})
 			continue
 		}
-		req, e := http.NewRequestWithContext(params.CTX, http.MethodGet, safeURL, nil)
-		if e != nil {
-			brokenLinks = append(brokenLinks, BrokenLink{URL: link.URL, Error: e.Error()})
-			continue
+		//req, e := http.NewRequestWithContext(params.CTX, http.MethodGet, safeURL, nil)
+		//if e != nil {
+		//	brokenLinks = append(brokenLinks, BrokenLink{URL: link.URL, Error: e.Error()})
+		//	continue
+		//}
+		//r, e := params.HTTPClient.Do(req) // #nosec G704 -- URL validated and reconstructed via helpers.ValidateURL
+		//if e != nil {
+		//	brokenLinks = append(brokenLinks, BrokenLink{URL: link.URL, Error: e.Error()})
+		//	continue
+		//}
+
+		var r *http.Response
+
+		for i := 0; i <= int(params.Retries); i++ {
+			if err := shared.RetryDelay(params, i); err != nil {
+				return nil, err
+			}
+
+			retry, err := request.DoRequestWithRetry(params, &r, i, safeURL)
+			if err != nil {
+				brokenLinks = append(brokenLinks, BrokenLink{URL: link.URL, Error: err.Error()})
+				continue linksFor
+			}
+			if retry {
+				continue
+			}
+			break
 		}
-		r, e := params.HTTPClient.Do(req) // #nosec G704 -- URL validated and reconstructed via helpers.ValidateURL
-		if e != nil {
-			brokenLinks = append(brokenLinks, BrokenLink{URL: link.URL, Error: e.Error()})
-			continue
+
+		if r == nil {
+			brokenLinks = append(brokenLinks, BrokenLink{URL: link.URL, Error: "no response"})
+			continue linksFor
 		}
 
 		if r.StatusCode != http.StatusOK {

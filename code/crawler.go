@@ -7,8 +7,6 @@ import (
 	"time"
 )
 
-const LimitReader = 10 * 1024 * 1024
-
 const BaseDepth = 0
 
 func Analyze(ctx context.Context, opts Options) ([]byte, error) {
@@ -28,6 +26,8 @@ func Analyze(ctx context.Context, opts Options) ([]byte, error) {
 		Queue:      &queue,
 		Visited:    visited,
 		Delay:      makeDelay(opts.Delay, opts.RPS),
+		Retries:    opts.Retries,
+		RPS:        opts.RPS,
 	}
 
 	pages, err := bfs(crawlParams, opts.Depth, &queue, visited)

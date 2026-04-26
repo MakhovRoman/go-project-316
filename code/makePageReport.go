@@ -3,6 +3,7 @@ package code
 import (
 	"code/internal/linkchecker"
 	"code/internal/parser"
+	"code/internal/request"
 	"code/internal/shared"
 	"log"
 	"net/http"
@@ -12,17 +13,17 @@ import (
 func makePageReport(params shared.CrawlParams, path string, depth uint) (Page, error) {
 	var page Page
 
-	if err := SleepContext(params.CTX, params.Delay); err != nil {
+	if err := shared.SleepContext(params.CTX, params.Delay); err != nil {
 		return page, err
 	}
 
-	resp, bodyBuffer, err := request(params.CTX, params.HTTPClient, path)
-	if err != nil {
-		return page, err
+	res := request.Request(params, path)
+	if res.Err != nil {
+		return page, res.Err
 	}
 
 	defer func() {
-		if err := resp.Body.Close(); err != nil {
+		if err := res.Response.Body.Close(); err != nil {
 			log.Printf("close body: %v", err)
 		}
 	}()
@@ -30,18 +31,18 @@ func makePageReport(params shared.CrawlParams, path string, depth uint) (Page, e
 	var status = "ok"
 	var statusErr string
 
-	if resp.StatusCode != 200 {
+	if res.Response.StatusCode != 200 {
 		status = "error"
-		statusErr = http.StatusText(resp.StatusCode)
+		statusErr = http.StatusText(res.Response.StatusCode)
 	}
 
-	bodyReader, err := makeReader(bodyBuffer, resp)
+	bodyReader, err := makeReader(res.Body, res.Response)
 	if err != nil {
 		return page, err
 	}
 	params.Body = bodyReader
 
-	if err := SleepContext(params.CTX, params.Delay); err != nil {
+	if err := shared.SleepContext(params.CTX, params.Delay); err != nil {
 		return page, err
 	}
 
@@ -50,7 +51,7 @@ func makePageReport(params shared.CrawlParams, path string, depth uint) (Page, e
 		return page, err
 	}
 
-	seoReader, err := makeReader(bodyBuffer, resp)
+	seoReader, err := makeReader(res.Body, res.Response)
 	if err != nil {
 		return page, err
 	}
@@ -60,9 +61,9 @@ func makePageReport(params shared.CrawlParams, path string, depth uint) (Page, e
 	}
 
 	page = Page{
-		URL:          resp.Request.URL.String(),
+		URL:          res.Response.Request.URL.String(),
 		Depth:        depth,
-		HTTPStatus:   resp.StatusCode,
+		HTTPStatus:   res.Response.StatusCode,
 		Status:       status,
 		Error:        statusErr,
 		DiscoveredAt: time.Now(),

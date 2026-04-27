@@ -24,6 +24,15 @@ func CheckLinks(params shared.CrawlParams, path string) (Result, error) {
 	var internal []string
 	broken := make([]BrokenLink, 0)
 	seen := make(map[string]struct{})
+	brokenSeen := make(map[string]struct{})
+
+	addBroken := func(link BrokenLink, key string) {
+		if _, ok := brokenSeen[key]; ok {
+			return
+		}
+		brokenSeen[key] = struct{}{}
+		broken = append(broken, link)
+	}
 
 linksFor:
 	for _, link := range links {
@@ -48,7 +57,7 @@ linksFor:
 			retry, err := request.DoRequestWithRetry(params, &r, i, safeURL)
 			if err != nil {
 				if isInternal(safeURL, params.Host) {
-					broken = append(broken, BrokenLink{URL: link.URL, Error: err.Error()})
+					addBroken(BrokenLink{URL: link.URL, Error: err.Error()}, key)
 				}
 				continue linksFor
 			}
@@ -60,14 +69,14 @@ linksFor:
 
 		if r == nil {
 			if isInternal(safeURL, params.Host) {
-				broken = append(broken, BrokenLink{URL: link.URL, Error: "no response"})
+				addBroken(BrokenLink{URL: link.URL, Error: "no response"}, key)
 			}
 			continue linksFor
 		}
 
 		if isInternal(safeURL, params.Host) {
 			if r.StatusCode >= http.StatusBadRequest {
-				broken = append(broken, BrokenLink{URL: link.URL, StatusCode: r.StatusCode, Error: http.StatusText(int(r.StatusCode))})
+				addBroken(BrokenLink{URL: link.URL, StatusCode: r.StatusCode, Error: http.StatusText(int(r.StatusCode))}, key)
 			} else {
 				internal = append(internal, safeURL)
 			}

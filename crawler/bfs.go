@@ -60,7 +60,7 @@ func (p *pool) spawn(urls []string, childDepth uint) {
 	for _, u := range urls {
 		if p.params.Visited.MarkIfNew(helpers.NormalizeURL(u)) {
 			p.wg.Add(1)
-			go p.run(helpers.NormalizeURL(u), childDepth)
+			go p.run(u, childDepth)
 		}
 	}
 }

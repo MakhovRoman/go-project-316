@@ -1,7 +1,6 @@
 package crawler
 
 import (
-	"code/internal/helpers"
 	"code/internal/shared"
 	"context"
 )
@@ -27,7 +26,7 @@ func Analyze(ctx context.Context, opts Options) ([]byte, error) {
 		CTX:        ctx,
 		HTTPClient: opts.HTTPClient,
 		Host:       host,
-		URL:        helpers.NormalizeURL(opts.URL),
+		URL:        opts.URL,
 		Depth:      opts.Depth,
 		Visited:    shared.NewVisited(),
 		Limiter:    limiter,

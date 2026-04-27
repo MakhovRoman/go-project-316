@@ -8,7 +8,7 @@ import (
 const BaseDepth = 0
 
 func Analyze(ctx context.Context, opts Options) ([]byte, error) {
-	n := int(opts.Concurrency)
+	n := int(opts.Concurrency) //#nosec G115 -- concurrency from CLI flag, fits in int
 	if n <= 0 {
 		n = 1
 	}

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"code/code"
+	"code/crawler"
 	"context"
 	"fmt"
 	"log"
@@ -52,7 +52,7 @@ func main() {
 				return fmt.Errorf("must specify url")
 			}
 
-			options := code.Options{
+			options := crawler.Options{
 				URL:         url,
 				Depth:       depth,
 				Retries:     retries,
@@ -65,7 +65,7 @@ func main() {
 				HTTPClient:  &http.Client{Timeout: timeout},
 			}
 
-			res, err := code.Analyze(ctx, options)
+			res, err := crawler.Analyze(ctx, options)
 			if err != nil {
 				return err
 			}

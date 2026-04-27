@@ -65,7 +65,7 @@ linksFor:
 		}
 
 		if isInternal(safeURL, params.Host) {
-			if r.StatusCode != http.StatusOK {
+			if r.StatusCode >= http.StatusBadRequest {
 				broken = append(broken, BrokenLink{URL: link.URL, StatusCode: r.StatusCode, Error: http.StatusText(int(r.StatusCode))})
 			} else {
 				internal = append(internal, safeURL)

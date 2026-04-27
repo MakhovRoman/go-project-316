@@ -33,7 +33,6 @@ linksFor:
 		seen[link.URL] = struct{}{}
 		safeURL, e := helpers.ValidateURL(link.URL)
 		if e != nil {
-			broken = append(broken, BrokenLink{URL: link.URL, Error: e.Error()})
 			continue
 		}
 
@@ -61,10 +60,12 @@ linksFor:
 			continue linksFor
 		}
 
-		if r.StatusCode != http.StatusOK {
-			broken = append(broken, BrokenLink{URL: link.URL, StatusCode: r.StatusCode, Error: http.StatusText(int(r.StatusCode))})
-		} else if isInternal(safeURL, params.Host) {
-			internal = append(internal, safeURL)
+		if isInternal(safeURL, params.Host) {
+			if r.StatusCode != http.StatusOK {
+				broken = append(broken, BrokenLink{URL: link.URL, StatusCode: r.StatusCode, Error: http.StatusText(int(r.StatusCode))})
+			} else {
+				internal = append(internal, safeURL)
+			}
 		}
 
 		if err := r.Body.Close(); err != nil {

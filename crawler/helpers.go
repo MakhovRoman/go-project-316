@@ -2,6 +2,8 @@ package crawler
 
 import (
 	"bytes"
+	"code/internal/linkchecker"
+	"code/internal/shared"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -63,6 +65,26 @@ func getResultFormat(indentJSON bool, report Report) ([]byte, error) {
 func getTime() string {
 	now := time.Now()
 	return now.Format(time.RFC3339)
+}
+
+func MakeErrorReport(url string, depth uint, err error) []byte {
+	page := Page{
+		URL:          url,
+		Depth:        BaseDepth,
+		Status:       "error",
+		Error:        err.Error(),
+		BrokenLinks:  make([]linkchecker.BrokenLink, 0),
+		Assets:       make([]shared.Asset, 0),
+		DiscoveredAt: getTime(),
+	}
+	report := Report{
+		RootURL:     url,
+		Depth:       depth,
+		GeneratedAt: getTime(),
+		Pages:       []Page{page},
+	}
+	data, _ := json.Marshal(report)
+	return data
 }
 
 func normalizeURL(rawURL string) string {

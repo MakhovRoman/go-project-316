@@ -3,7 +3,6 @@ package main
 import (
 	"code/crawler"
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -67,13 +66,7 @@ func main() {
 
 			res, err := crawler.Analyze(ctx, options)
 			if err != nil {
-				empty := crawler.Report{
-					RootURL: url,
-					Depth:   depth,
-					Pages:   []crawler.Page{},
-				}
-				data, _ := json.Marshal(empty)
-				fmt.Println(string(data))
+				fmt.Println(string(crawler.MakeErrorReport(url, depth, err)))
 				return nil
 			}
 

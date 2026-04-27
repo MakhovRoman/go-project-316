@@ -4,7 +4,6 @@ import (
 	"code/crawler"
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"time"
@@ -76,7 +75,6 @@ func main() {
 	}
 
 	if err := cmd.Run(context.Background(), os.Args); err != nil {
-		log.Printf("application error: %v", err)
 		os.Exit(0)
 	}
 }

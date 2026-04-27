@@ -64,3 +64,12 @@ func getTime() string {
 	now := time.Now()
 	return now.Format(time.RFC3339)
 }
+
+func normalizeURL(rawURL string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil || u.Path != "" {
+		return rawURL
+	}
+	u.Path = "/"
+	return u.String()
+}

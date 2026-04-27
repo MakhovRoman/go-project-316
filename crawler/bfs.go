@@ -57,7 +57,7 @@ func (p *pool) spawn(urls []string, childDepth uint) {
 		return
 	}
 	for _, u := range urls {
-		if p.params.Visited.MarkIfNew(u) {
+		if p.params.Visited.MarkIfNew(normalizeURL(u)) {
 			p.wg.Add(1)
 			go p.run(u, childDepth)
 		}
@@ -65,7 +65,7 @@ func (p *pool) spawn(urls []string, childDepth uint) {
 }
 
 func bfs(params shared.CrawlParams, maxDepth uint, concurrency int) ([]Page, error) {
-	params.Visited.MarkIfNew(params.URL)
+	params.Visited.MarkIfNew(normalizeURL(params.URL))
 
 	rootResult, err := makePageReport(params, params.URL, BaseDepth)
 	if err != nil {

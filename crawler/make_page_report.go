@@ -8,6 +8,7 @@ import (
 	"code/internal/shared"
 	"log"
 	"net/http"
+	"sort"
 )
 
 type pageResult struct {
@@ -68,6 +69,9 @@ func makePageReport(params shared.CrawlParams, path string, depth uint) (pageRes
 	for _, a := range parsedAssets {
 		assets = append(assets, fetchasset.FetchAsset(params, a))
 	}
+	sort.Slice(assets, func(i, j int) bool {
+		return assets[i].Type < assets[j].Type
+	})
 
 	page := Page{
 		URL:          res.Response.Request.URL.String(),

@@ -83,11 +83,3 @@ func MakeErrorReport(url string, depth uint, err error) []byte {
 	return data
 }
 
-func normalizeURL(rawURL string) string {
-	u, err := url.Parse(rawURL)
-	if err != nil || u.Path != "" {
-		return rawURL
-	}
-	u.Path = "/"
-	return u.String()
-}

@@ -27,14 +27,15 @@ func CheckLinks(params shared.CrawlParams, path string) (Result, error) {
 
 linksFor:
 	for _, link := range links {
-		if _, ok := seen[link.URL]; ok {
-			continue
-		}
-		seen[link.URL] = struct{}{}
 		safeURL, e := helpers.ValidateURL(link.URL)
 		if e != nil {
 			continue
 		}
+		key := helpers.NormalizeURL(safeURL)
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
 
 		var r *http.Response
 

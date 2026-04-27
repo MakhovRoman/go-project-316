@@ -1,6 +1,7 @@
 package crawler
 
 import (
+	"code/internal/helpers"
 	"code/internal/shared"
 	"context"
 	"errors"
@@ -57,7 +58,7 @@ func (p *pool) spawn(urls []string, childDepth uint) {
 		return
 	}
 	for _, u := range urls {
-		if p.params.Visited.MarkIfNew(normalizeURL(u)) {
+		if p.params.Visited.MarkIfNew(helpers.NormalizeURL(u)) {
 			p.wg.Add(1)
 			go p.run(u, childDepth)
 		}
@@ -65,7 +66,7 @@ func (p *pool) spawn(urls []string, childDepth uint) {
 }
 
 func bfs(params shared.CrawlParams, maxDepth uint, concurrency int) ([]Page, error) {
-	params.Visited.MarkIfNew(normalizeURL(params.URL))
+	params.Visited.MarkIfNew(helpers.NormalizeURL(params.URL))
 
 	rootResult, err := makePageReport(params, params.URL, BaseDepth)
 	if err != nil {

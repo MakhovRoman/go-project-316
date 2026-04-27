@@ -73,14 +73,8 @@ func TestCheckLinks_NetworkError(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if len(res.Broken) != 1 {
-		t.Fatalf("expected 1 broken link, got %d", len(res.Broken))
-	}
-	if res.Broken[0].Error == "" {
-		t.Error("expected non-empty error message")
-	}
-	if res.Broken[0].StatusCode != 0 {
-		t.Errorf("expected status code 0, got %d", res.Broken[0].StatusCode)
+	if len(res.Broken) != 0 {
+		t.Fatalf("expected 0 broken links (external errors skipped), got %d: %+v", len(res.Broken), res.Broken)
 	}
 }
 

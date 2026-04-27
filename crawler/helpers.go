@@ -2,8 +2,6 @@ package crawler
 
 import (
 	"bytes"
-	"code/internal/linkchecker"
-	"code/internal/shared"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -73,8 +71,6 @@ func MakeErrorReport(url string, depth uint, err error) []byte {
 		Depth:        BaseDepth,
 		Status:       "error",
 		Error:        err.Error(),
-		BrokenLinks:  make([]linkchecker.BrokenLink, 0),
-		Assets:       make([]shared.Asset, 0),
 		DiscoveredAt: getTime(),
 	}
 	report := Report{

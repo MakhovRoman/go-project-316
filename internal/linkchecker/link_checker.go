@@ -46,7 +46,9 @@ linksFor:
 
 			retry, err := request.DoRequestWithRetry(params, &r, i, safeURL)
 			if err != nil {
-				broken = append(broken, BrokenLink{URL: link.URL, Error: err.Error()})
+				if isInternal(safeURL, params.Host) {
+					broken = append(broken, BrokenLink{URL: link.URL, Error: err.Error()})
+				}
 				continue linksFor
 			}
 			if retry {
@@ -56,7 +58,9 @@ linksFor:
 		}
 
 		if r == nil {
-			broken = append(broken, BrokenLink{URL: link.URL, Error: "no response"})
+			if isInternal(safeURL, params.Host) {
+				broken = append(broken, BrokenLink{URL: link.URL, Error: "no response"})
+			}
 			continue linksFor
 		}
 

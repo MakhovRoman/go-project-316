@@ -61,6 +61,10 @@ func DoRequestWithRetry(params shared.CrawlParams, resp **http.Response, attempt
 
 	retries := int(params.Retries) // #nosec G115 -- retries from CLI flag, fits in int
 
+	if err := params.Limiter.Wait(params.CTX); err != nil {
+		return false, err
+	}
+
 	*resp, err = (params.HTTPClient).Do(req) // #nosec G704 -- URL validated and reconstructed via helpers.ValidateURL
 	if err != nil {
 		if attempt == retries {

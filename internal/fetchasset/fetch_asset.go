@@ -10,7 +10,7 @@ import (
 )
 
 func FetchAsset(params shared.CrawlParams, asset shared.Asset) shared.Asset {
-	if cached, ok := params.AssetCache[asset.URL]; ok {
+	if cached, ok := params.AssetCache.Get(asset.URL); ok {
 		return cached
 	}
 
@@ -20,14 +20,14 @@ func FetchAsset(params shared.CrawlParams, asset shared.Asset) shared.Asset {
 	for i := 0; i <= retries; i++ {
 		if err := shared.RetryDelay(params, i); err != nil {
 			asset.Error = err.Error()
-			params.AssetCache[asset.URL] = asset
+			params.AssetCache.Set(asset.URL, asset)
 			return asset
 		}
 
 		retry, err := request.DoRequestWithRetry(params, &resp, i, asset.URL)
 		if err != nil {
 			asset.Error = err.Error()
-			params.AssetCache[asset.URL] = asset
+			params.AssetCache.Set(asset.URL, asset)
 			return asset
 		}
 		if retry {
@@ -39,7 +39,7 @@ func FetchAsset(params shared.CrawlParams, asset shared.Asset) shared.Asset {
 
 	if resp == nil {
 		asset.Error = "no response"
-		params.AssetCache[asset.URL] = asset
+		params.AssetCache.Set(asset.URL, asset)
 		return asset
 	}
 	defer func() {
@@ -66,6 +66,6 @@ func FetchAsset(params shared.CrawlParams, asset shared.Asset) shared.Asset {
 		asset.Error = fmt.Sprintf("http %d %s", resp.StatusCode, http.StatusText(resp.StatusCode))
 	}
 
-	params.AssetCache[asset.URL] = asset
+	params.AssetCache.Set(asset.URL, asset)
 	return asset
 }

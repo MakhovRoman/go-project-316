@@ -11,16 +11,15 @@ import (
 	"time"
 )
 
-func makePageReport(params shared.CrawlParams, path string, depth uint) (Page, error) {
-	var page Page
+type pageResult struct {
+	page         Page
+	internalURLs []string
+}
 
-	if err := shared.SleepContext(params.CTX, params.Delay); err != nil {
-		return page, err
-	}
-
+func makePageReport(params shared.CrawlParams, path string, depth uint) (pageResult, error) {
 	res := request.Request(params, path)
 	if res.Err != nil {
-		return page, res.Err
+		return pageResult{}, res.Err
 	}
 
 	defer func() {
@@ -39,35 +38,31 @@ func makePageReport(params shared.CrawlParams, path string, depth uint) (Page, e
 
 	bodyReader, err := makeReader(res.Body, res.Response)
 	if err != nil {
-		return page, err
+		return pageResult{}, err
 	}
 	params.Body = bodyReader
 
-	if err := shared.SleepContext(params.CTX, params.Delay); err != nil {
-		return page, err
-	}
-
-	brokenLinks, err := linkchecker.CheckLinks(params, path, depth)
+	linksResult, err := linkchecker.CheckLinks(params, path)
 	if err != nil {
-		return page, err
+		return pageResult{}, err
 	}
 
 	seoReader, err := makeReader(res.Body, res.Response)
 	if err != nil {
-		return page, err
+		return pageResult{}, err
 	}
 	seo, err := parser.ParseSEO(seoReader)
 	if err != nil {
-		return page, err
+		return pageResult{}, err
 	}
 
 	assetsReader, err := makeReader(res.Body, res.Response)
 	if err != nil {
-		return page, err
+		return pageResult{}, err
 	}
 	parsedAssets, err := parser.ParseAssets(assetsReader, path)
 	if err != nil {
-		return page, err
+		return pageResult{}, err
 	}
 
 	assets := make([]shared.Asset, 0, len(parsedAssets))
@@ -75,17 +70,17 @@ func makePageReport(params shared.CrawlParams, path string, depth uint) (Page, e
 		assets = append(assets, fetchasset.FetchAsset(params, a))
 	}
 
-	page = Page{
+	page := Page{
 		URL:          res.Response.Request.URL.String(),
 		Depth:        depth,
 		HTTPStatus:   res.Response.StatusCode,
 		Status:       status,
 		Error:        statusErr,
 		DiscoveredAt: time.Now(),
-		BrokenLinks:  brokenLinks,
+		BrokenLinks:  linksResult.Broken,
 		SEO:          seo,
 		Assets:       assets,
 	}
 
-	return page, nil
+	return pageResult{page: page, internalURLs: linksResult.Internal}, nil
 }

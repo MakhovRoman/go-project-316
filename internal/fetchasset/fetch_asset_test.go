@@ -14,7 +14,7 @@ func makeParams(client *http.Client) shared.CrawlParams {
 		CTX:        context.Background(),
 		HTTPClient: client,
 		Retries:    0,
-		AssetCache: make(shared.AssetCache),
+		AssetCache: shared.NewAssetCache(),
 	}
 }
 

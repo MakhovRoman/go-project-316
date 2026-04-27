@@ -58,9 +58,9 @@ func main() {
 				Delay:       delay,
 				Timeout:     timeout,
 				UserAgent:   userAgent,
-				Concurrency: 0,
+				Concurrency: workers,
 				IndentJSON:  0,
-				HTTPClient:  &http.Client{},
+				HTTPClient:  &http.Client{Timeout: timeout},
 			}
 
 			res, err := code.Analyze(ctx, options)

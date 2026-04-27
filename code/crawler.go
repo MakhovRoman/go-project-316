@@ -10,29 +10,35 @@ import (
 const BaseDepth = 0
 
 func Analyze(ctx context.Context, opts Options) ([]byte, error) {
-	var queue shared.Queue
-	visited := make(shared.Visited)
-	assetsCache := make(shared.AssetCache)
+	n := int(opts.Concurrency)
+	if n <= 0 {
+		n = 1
+	}
+
+	delay := makeDelay(opts.Delay, opts.RPS)
+	limiter := shared.NewRateLimiter(delay)
+	defer limiter.Stop()
 
 	host, err := getHost(opts.URL)
 	if err != nil {
 		return nil, err
 	}
 
-	crawlParams := shared.CrawlParams{
+	params := shared.CrawlParams{
 		CTX:        ctx,
 		HTTPClient: opts.HTTPClient,
 		Host:       host,
 		URL:        opts.URL,
-		Queue:      &queue,
-		Visited:    visited,
-		Delay:      makeDelay(opts.Delay, opts.RPS),
+		Depth:      opts.Depth,
+		Visited:    shared.NewVisited(),
+		Limiter:    limiter,
+		Delay:      delay,
 		Retries:    opts.Retries,
 		RPS:        opts.RPS,
-		AssetCache: assetsCache,
+		AssetCache: shared.NewAssetCache(),
 	}
 
-	pages, err := bfs(crawlParams, opts.Depth, &queue, visited)
+	pages, err := bfs(params, opts.Depth, n)
 	if err != nil {
 		return nil, err
 	}

@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 type Result struct {
@@ -26,6 +27,17 @@ func CheckLinks(params shared.CrawlParams, path string) (Result, error) {
 	seen := make(map[string]struct{})
 	brokenSeen := make(map[string]struct{})
 
+	normalizeBrokenKey := func(rawURL string) string {
+		u, err := url.Parse(rawURL)
+		if err != nil {
+			return rawURL
+		}
+		u.Fragment = ""
+		u.RawQuery = ""
+		u.Path = strings.TrimSuffix(u.Path, "/")
+		return u.String()
+	}
+
 	addBroken := func(link BrokenLink, key string) {
 		if _, ok := brokenSeen[key]; ok {
 			return
@@ -41,6 +53,7 @@ linksFor:
 			continue
 		}
 		key := helpers.NormalizeURL(safeURL)
+		brokenKey := normalizeBrokenKey(safeURL)
 		if _, ok := seen[key]; ok {
 			continue
 		}
@@ -57,7 +70,7 @@ linksFor:
 			retry, err := request.DoRequestWithRetry(params, &r, i, safeURL)
 			if err != nil {
 				if isInternal(safeURL, params.Host) {
-					addBroken(BrokenLink{URL: link.URL, Error: err.Error()}, key)
+					addBroken(BrokenLink{URL: link.URL, Error: err.Error()}, brokenKey)
 				}
 				continue linksFor
 			}
@@ -69,14 +82,14 @@ linksFor:
 
 		if r == nil {
 			if isInternal(safeURL, params.Host) {
-				addBroken(BrokenLink{URL: link.URL, Error: "no response"}, key)
+				addBroken(BrokenLink{URL: link.URL, Error: "no response"}, brokenKey)
 			}
 			continue linksFor
 		}
 
 		if isInternal(safeURL, params.Host) {
 			if r.StatusCode >= http.StatusBadRequest {
-				addBroken(BrokenLink{URL: link.URL, StatusCode: r.StatusCode, Error: http.StatusText(int(r.StatusCode))}, key)
+				addBroken(BrokenLink{URL: link.URL, StatusCode: r.StatusCode, Error: http.StatusText(int(r.StatusCode))}, brokenKey)
 			} else {
 				internal = append(internal, safeURL)
 			}

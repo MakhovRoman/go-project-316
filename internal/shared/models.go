@@ -21,6 +21,7 @@ type CrawlParams struct {
 	Retries    uint
 	RPS        uint
 	AssetCache *AssetCache
+	UserAgent  string
 }
 
 type Visited struct {

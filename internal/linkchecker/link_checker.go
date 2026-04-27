@@ -21,10 +21,8 @@ func CheckLinks(params shared.CrawlParams, path string) (Result, error) {
 		return Result{}, err
 	}
 
-	var (
-		broken   []BrokenLink
-		internal []string
-	)
+	var internal []string
+	broken := make([]BrokenLink, 0)
 
 linksFor:
 	for _, link := range links {
@@ -59,7 +57,7 @@ linksFor:
 		}
 
 		if r.StatusCode != http.StatusOK {
-			broken = append(broken, BrokenLink{URL: link.URL, StatusCode: r.StatusCode})
+			broken = append(broken, BrokenLink{URL: link.URL, StatusCode: r.StatusCode, Error: http.StatusText(int(r.StatusCode))})
 		} else if isInternal(safeURL, params.Host) {
 			internal = append(internal, safeURL)
 		}

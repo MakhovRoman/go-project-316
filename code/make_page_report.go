@@ -8,7 +8,6 @@ import (
 	"code/internal/shared"
 	"log"
 	"net/http"
-	"time"
 )
 
 type pageResult struct {
@@ -76,7 +75,7 @@ func makePageReport(params shared.CrawlParams, path string, depth uint) (pageRes
 		HTTPStatus:   res.Response.StatusCode,
 		Status:       status,
 		Error:        statusErr,
-		DiscoveredAt: time.Now(),
+		DiscoveredAt: getTime(),
 		BrokenLinks:  linksResult.Broken,
 		SEO:          seo,
 		Assets:       assets,

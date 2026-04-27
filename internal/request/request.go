@@ -65,6 +65,9 @@ func DoRequestWithRetry(params shared.CrawlParams, resp **http.Response, attempt
 		return false, err
 	}
 
+	if params.UserAgent != "" {
+		req.Header.Set("User-Agent", params.UserAgent)
+	}
 	*resp, err = (params.HTTPClient).Do(req) // #nosec G704 -- URL validated and reconstructed via helpers.ValidateURL
 	if err != nil {
 		if attempt == retries {

@@ -3,8 +3,6 @@ package code
 import (
 	"code/internal/shared"
 	"context"
-	"encoding/json"
-	"time"
 )
 
 const BaseDepth = 0
@@ -36,6 +34,7 @@ func Analyze(ctx context.Context, opts Options) ([]byte, error) {
 		Retries:    opts.Retries,
 		RPS:        opts.RPS,
 		AssetCache: shared.NewAssetCache(),
+		UserAgent:  opts.UserAgent,
 	}
 
 	pages, err := bfs(params, opts.Depth, n)
@@ -46,11 +45,11 @@ func Analyze(ctx context.Context, opts Options) ([]byte, error) {
 	report := Report{
 		RootURL:     opts.URL,
 		Depth:       opts.Depth,
-		GeneratedAt: time.Now(),
+		GeneratedAt: getTime(),
 		Pages:       pages,
 	}
 
-	result, err := json.MarshalIndent(report, "", "  ")
+	result, err := getResultFormat(opts.IndentJSON, report)
 	if err != nil {
 		return nil, err
 	}

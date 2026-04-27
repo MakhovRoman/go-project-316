@@ -2,6 +2,7 @@ package code
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
@@ -38,4 +39,28 @@ func makeDelay(delay time.Duration, rps uint) time.Duration {
 	}
 
 	return time.Second / time.Duration(int64(rps)) // #nosec G115 -- rps is a small positive value, overflow is impossible in practice
+}
+
+func getResultFormat(indentJSON bool, report Report) ([]byte, error) {
+	var result []byte
+	var err error
+
+	if indentJSON {
+		result, err = json.MarshalIndent(report, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		result, err = json.Marshal(report)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return result, nil
+}
+
+func getTime() string {
+	now := time.Now()
+	return now.Format(time.RFC3339)
 }

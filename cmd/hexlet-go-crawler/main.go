@@ -17,21 +17,23 @@ func main() {
 	var retries uint = 1
 	var delay = 0 * time.Second
 	var timeout = 15 * time.Second
-	var rps uint = 0
+	var rps uint
 	var userAgent string
 	var workers uint = 4
+	var indentJSON bool
 
 	cmd := &cli.Command{
 		Name:  "hexlet-go-crawler",
 		Usage: "analyze a website structure",
 		Flags: []cli.Flag{
-			&cli.UintFlag{Name: "depth", Usage: "crawl depth", Value: 1, Destination: &depth},
+			&cli.UintFlag{Name: "depth", Usage: "crawl depth", Value: 10, Destination: &depth},
 			&cli.UintFlag{Name: "retries", Usage: "number of retries for failed requests", Value: 1, Destination: &retries},
 			&cli.DurationFlag{Name: "delay", Usage: "delay between requests (example: 200ms, 1s)", Value: 0 * time.Second, Destination: &delay},
 			&cli.DurationFlag{Name: "timeout", Usage: "per-request timeout", Value: 15 * time.Second, Destination: &timeout},
 			&cli.UintFlag{Name: "rps", Usage: "limit requests per second (overrides delay)", Value: 0, Destination: &rps},
 			&cli.StringFlag{Name: "user-agent", Usage: "custom user agent", Destination: &userAgent},
 			&cli.UintFlag{Name: "workers", Usage: "number of concurrent workers", Value: 4, Destination: &workers},
+			&cli.BoolFlag{Name: "indent-json", Usage: "indent JSON output for readability without changing content or key order", Value: false, Destination: &indentJSON},
 		},
 		Commands: []*cli.Command{
 			{
@@ -59,7 +61,7 @@ func main() {
 				Timeout:     timeout,
 				UserAgent:   userAgent,
 				Concurrency: workers,
-				IndentJSON:  0,
+				IndentJSON:  indentJSON,
 				HTTPClient:  &http.Client{Timeout: timeout},
 			}
 

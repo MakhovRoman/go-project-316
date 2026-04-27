@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"sort"
 	"sync"
 )
 
@@ -75,6 +76,10 @@ func bfs(params shared.CrawlParams, maxDepth uint, concurrency int) ([]Page, err
 	p.pages = []Page{rootResult.page}
 	p.spawn(rootResult.internalURLs, BaseDepth+1)
 	p.wg.Wait()
+
+	sort.Slice(p.pages, func(i, j int) bool {
+		return p.pages[i].URL < p.pages[j].URL
+	})
 
 	return p.pages, nil
 }

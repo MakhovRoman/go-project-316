@@ -23,9 +23,14 @@ func CheckLinks(params shared.CrawlParams, path string) (Result, error) {
 
 	var internal []string
 	broken := make([]BrokenLink, 0)
+	seen := make(map[string]struct{})
 
 linksFor:
 	for _, link := range links {
+		if _, ok := seen[link.URL]; ok {
+			continue
+		}
+		seen[link.URL] = struct{}{}
 		safeURL, e := helpers.ValidateURL(link.URL)
 		if e != nil {
 			broken = append(broken, BrokenLink{URL: link.URL, Error: e.Error()})

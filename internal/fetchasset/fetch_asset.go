@@ -24,7 +24,7 @@ func FetchAsset(params shared.CrawlParams, asset shared.Asset) shared.Asset {
 			return asset
 		}
 
-		retry, err := request.DoRequestWithRetry(params, &resp, i, asset.URL)
+		retry, err := request.DoRequestWithRetry(params, &resp, i, asset.URL, http.MethodHead)
 		if err != nil {
 			asset.Error = err.Error()
 			params.AssetCache.Set(asset.URL, asset)

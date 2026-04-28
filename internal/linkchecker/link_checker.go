@@ -67,7 +67,7 @@ linksFor:
 				return Result{}, err
 			}
 
-			retry, err := request.DoRequestWithRetry(params, &r, i, safeURL)
+			retry, err := request.DoRequestWithRetry(params, &r, i, safeURL, http.MethodHead)
 			if err != nil {
 				if isInternal(safeURL, params.Host) {
 					addBroken(BrokenLink{URL: link.URL, Error: err.Error()}, brokenKey)

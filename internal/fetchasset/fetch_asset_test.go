@@ -48,13 +48,13 @@ func TestFetchAsset_DedupAcrossPages(t *testing.T) {
 	}
 }
 
-func TestFetchAsset_MissingContentLength(t *testing.T) {
-	body := []byte("some asset body content")
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+func TestFetchAsset_UsesHeadAndContentLengthHeader(t *testing.T) {
+	const size = 23
+	var method atomic.Value
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		method.Store(r.Method)
+		w.Header().Set("Content-Length", "23")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write(body[:5])
-		w.(http.Flusher).Flush()
-		_, _ = w.Write(body[5:])
 	}))
 	defer server.Close()
 
@@ -63,8 +63,11 @@ func TestFetchAsset_MissingContentLength(t *testing.T) {
 
 	res := FetchAsset(params, asset)
 
-	if res.SizeBytes != int64(len(body)) {
-		t.Errorf("expected size %d, got %d", len(body), res.SizeBytes)
+	if got, _ := method.Load().(string); got != http.MethodHead {
+		t.Errorf("expected HEAD request, got %q", got)
+	}
+	if res.SizeBytes != size {
+		t.Errorf("expected size %d, got %d", size, res.SizeBytes)
 	}
 	if res.Error != "" {
 		t.Errorf("expected no error, got %q", res.Error)

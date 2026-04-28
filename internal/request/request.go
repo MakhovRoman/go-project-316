@@ -30,7 +30,7 @@ func Request(params shared.CrawlParams, path string) ResultRequest {
 			return ResultRequest{Err: err}
 		}
 
-		retry, err := DoRequestWithRetry(params, &resp, i, safeURL)
+		retry, err := DoRequestWithRetry(params, &resp, i, safeURL, http.MethodGet)
 		if err != nil {
 			return ResultRequest{Err: err}
 		}
@@ -53,8 +53,8 @@ func Request(params shared.CrawlParams, path string) ResultRequest {
 	return ResultRequest{Response: resp, Body: bodyBuffer, Err: nil}
 }
 
-func DoRequestWithRetry(params shared.CrawlParams, resp **http.Response, attempt int, path string) (bool, error) {
-	req, err := http.NewRequestWithContext(params.CTX, http.MethodGet, path, nil)
+func DoRequestWithRetry(params shared.CrawlParams, resp **http.Response, attempt int, path string, method string) (bool, error) {
+	req, err := http.NewRequestWithContext(params.CTX, method, path, nil)
 	if err != nil {
 		return false, err
 	}

@@ -6,6 +6,8 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+// SEO — собранные SEO-метаданные страницы: наличие и содержимое <title>,
+// <meta name="description"> и наличие <h1>.
 type SEO struct {
 	HasTitle       bool   `json:"has_title"`
 	Title          string `json:"title"`
@@ -14,6 +16,7 @@ type SEO struct {
 	HasH1          bool   `json:"has_h1"`
 }
 
+// ParseSEO извлекает SEO-метаданные из HTML-документа: title, description и факт наличия h1.
 func ParseSEO(body io.Reader) (SEO, error) {
 	doc, err := goquery.NewDocumentFromReader(body)
 	if err != nil {

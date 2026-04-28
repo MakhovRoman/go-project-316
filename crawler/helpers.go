@@ -65,6 +65,8 @@ func getTime() string {
 	return now.Format(time.RFC3339)
 }
 
+// MakeErrorReport формирует минимальный JSON-отчёт с одной страницей в статусе "error",
+// когда обход не смог стартовать (например, корневой URL недоступен).
 func MakeErrorReport(url string, depth uint, err error) []byte {
 	page := Page{
 		URL:          url,

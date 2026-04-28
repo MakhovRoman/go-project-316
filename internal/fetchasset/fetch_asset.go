@@ -9,6 +9,9 @@ import (
 	"net/http"
 )
 
+// FetchAsset делает HEAD-запрос за ассетом (картинка/скрипт/стиль) и возвращает
+// его с заполненными StatusCode, SizeBytes (из заголовка Content-Length) и Error,
+// если ресурс недоступен. Результаты кэшируются по URL в params.AssetCache.
 func FetchAsset(params shared.CrawlParams, asset shared.Asset) shared.Asset {
 	if cached, ok := params.AssetCache.Get(asset.URL); ok {
 		return cached

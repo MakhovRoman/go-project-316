@@ -11,11 +11,16 @@ import (
 	"strings"
 )
 
+// Result — результат проверки ссылок на одной странице:
+// список битых ссылок и список внутренних URL для дальнейшего обхода.
 type Result struct {
 	Broken   []BrokenLink
 	Internal []string
 }
 
+// CheckLinks парсит HTML страницы, проверяет каждую найденную ссылку HEAD-запросом
+// и возвращает разделённые списки битых и внутренних ссылок. Внешние рабочие ссылки
+// в результат не попадают; битыми считаются только ссылки на тот же хост, что и params.Host.
 func CheckLinks(params shared.CrawlParams, path string) (Result, error) {
 	links, err := parser.ParseHTML(params.Body, path)
 	if err != nil {

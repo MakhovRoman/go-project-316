@@ -8,11 +8,15 @@ import (
 	"golang.org/x/net/html"
 )
 
+// Link — найденная в HTML ссылка <a href>: абсолютный URL и признак внутренней ссылки.
 type Link struct {
 	URL      string
 	Internal bool
 }
 
+// ParseHTML извлекает все валидные ссылки <a href> из HTML-документа.
+// Относительные URL разрешаются относительно path; ссылки с пустым/некорректным
+// или неподдерживаемым URL пропускаются.
 func ParseHTML(body io.Reader, path string) ([]Link, error) {
 	doc, err := html.Parse(body)
 	if err != nil {

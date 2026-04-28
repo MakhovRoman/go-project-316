@@ -1,3 +1,5 @@
+// Package crawler обходит сайт в ширину начиная с заданного URL и формирует
+// JSON-отчёт о страницах: их статусах, найденных ссылках, ассетах и SEO-метаданных.
 package crawler
 
 import (
@@ -5,8 +7,13 @@ import (
 	"context"
 )
 
+// BaseDepth — глубина корневой страницы при обходе (страница, с которой начинается анализ).
 const BaseDepth = 0
 
+// Analyze обходит сайт начиная с opts.URL до глубины opts.Depth и возвращает
+// сериализованный JSON-отчёт. Учитывает ограничения по конкурентности, задержке
+// между запросами и числу повторов. Возвращает ошибку, если корневой URL некорректен
+// или не удалось сформировать отчёт.
 func Analyze(ctx context.Context, opts Options) ([]byte, error) {
 	n := int(opts.Concurrency) //#nosec G115 -- concurrency from CLI flag, fits in int
 	if n <= 0 {

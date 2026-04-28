@@ -5,8 +5,12 @@ import (
 	"time"
 )
 
+// BaseDelay — задержка по умолчанию между повторными запросами,
+// если в CrawlParams.Delay не задано иное.
 const BaseDelay = 100 * time.Millisecond
 
+// SleepContext ждёт указанную задержку или прерывается при отмене ctx,
+// возвращая в этом случае ctx.Err().
 func SleepContext(ctx context.Context, delay time.Duration) error {
 	select {
 	case <-time.After(delay):
@@ -16,6 +20,8 @@ func SleepContext(ctx context.Context, delay time.Duration) error {
 	}
 }
 
+// RetryDelay делает паузу между повторными попытками запроса. Перед первой
+// попыткой (attempt == 0) не ждёт. Использует params.Delay, либо BaseDelay по умолчанию.
 func RetryDelay(params CrawlParams, attempt int) error {
 	if attempt > 0 {
 		delay := params.Delay

@@ -10,6 +10,7 @@ import (
 	"golang.org/x/net/html"
 )
 
+// Поддерживаемые типы статических ресурсов страницы.
 const (
 	AssetTypeImage  shared.AssetType = "image"
 	AssetTypeScript shared.AssetType = "script"
@@ -22,6 +23,9 @@ var assetTypeByTag = map[string]shared.AssetType{
 	"script": AssetTypeScript,
 }
 
+// ParseAssets извлекает из HTML-документа статические ресурсы — <img src>,
+// <script src> и <link rel="stylesheet" href>. Относительные URL разрешаются
+// относительно path; некорректные и неподдерживаемые URL пропускаются.
 func ParseAssets(body io.Reader, path string) ([]shared.Asset, error) {
 	doc, err := html.Parse(body)
 	if err != nil {
